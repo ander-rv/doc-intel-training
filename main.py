@@ -1,10 +1,10 @@
 import os
-from pprint import pprint
 
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeResult
 from dotenv import load_dotenv
+from tabulate import tabulate
 
 
 # cargar el archivo .env a las variables de entorno
@@ -17,7 +17,7 @@ TEST_FILE_PATH = os.getenv("TEST_FILE_PATH", "")
 DOC_INTEL_MODEL_PREBUILT_LAYOUT = os.getenv("DOC_INTEL_MODEL_PREBUILT_LAYOUT", "")
 
 
-def analize_doc(file_path: str, model: str):
+def analize_doc(doc_intel_endpoint: str, doc_intel_api_key: str, file_path: str, model: str):
     """
     Analiza un documento utilizando Azure Document Intelligence.
 
@@ -40,7 +40,7 @@ def analize_doc(file_path: str, model: str):
         AzureError: Si ocurre un error durante la llamada al servicio de Azure.
     """
     document_intelligence_client = DocumentIntelligenceClient(
-        endpoint=DOC_INTEL_ENDPOINT, credential=AzureKeyCredential(DOC_INTEL_API_KEY)
+        endpoint=doc_intel_endpoint, credential=AzureKeyCredential(doc_intel_api_key)
     )
 
     poller = document_intelligence_client.begin_analyze_document(
@@ -92,11 +92,31 @@ def tables_to_dict(result: AnalyzeResult) -> dict[str, str]:
     return data
 
 
-def main():
-    result = analize_doc(file_path=TEST_FILE_PATH, model=DOC_INTEL_MODEL_PREBUILT_LAYOUT)
-    data = tables_to_dict(result)
-    pprint(data)
+def print_table(data: dict[str, str], tablefmt: str = "fancy_grid") -> None:
+    """
+    Imprime un diccionario como una tabla formateada en la consola.
 
+    Convierte los pares clave-valor del diccionario en filas de una tabla
+    y utiliza la librería `tabulate` para mostrarlas con bordes formateados.
+
+    Args:
+        data (dict[str, str]): Diccionario cuyos pares clave-valor se mostrarán
+            como filas de la tabla.
+        tablefmt (str, optional): Formato de tabla utilizado por `tabulate`.
+            Por defecto es "fancy_grid".
+
+    Returns:
+        None
+    """
+    table = [(k, v) for k, v in data.items()]
+    print(tabulate(table, tablefmt=tablefmt))
+
+
+def main():
+    result = analize_doc(doc_intel_endpoint=DOC_INTEL_ENDPOINT, doc_intel_api_key=DOC_INTEL_API_KEY,
+                         file_path=TEST_FILE_PATH, model=DOC_INTEL_MODEL_PREBUILT_LAYOUT)
+    data = tables_to_dict(result)
+    print_table(data)
     print(f'\nLa marca del coche es "{data["D.1"]}"')
 
 
